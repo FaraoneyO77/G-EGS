@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<h1>{{ title }}</h1>
+
+<a href="{{ url_for('admin_users') }}" class="btn btn-secondary btn-sm" style="margin-bottom: 20px;">
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline-block mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+    </svg>
+    Geri (Kullanıcı Yönetimi)
+</a>
+
+<!-- Yeni Nitelik Ekleme Formu -->
+<div class="card mb-4">
+    <h2 style="font-size: 1.3em; margin-bottom: 15px;">Yeni Paylaşılan Özellik Ekle</h2>
+    <form method="POST" action="{{ url_for('admin_attributes') }}">
+        <div style="display: flex; gap: 10px; align-items: center;">
+            <select name="attribute_name" class="form-control" style="flex: 1;" required>
+                <option value="" disabled selected>-- Nitelik Türü Seçiniz --</option>
+                {% for name in attribute_names %}
+                    <option value="{{ name }}">{{ name }}</option>
+                {% endfor %}
+            </select>
+            <input type="text" name="attribute_value" placeholder="Nitelik Değeri (Örn: Intel i5 10. Nesil)" class="form-control" style="flex: 2;" required>
+            <button type="submit" class="btn btn-primary" style="flex: 1;">Ekle</button>
+        </div>
+    </form>
+</div>
+
+<!-- Mevcut Nitelikler Listesi -->
+<div class="card">
+    <h2 style="font-size: 1.3em; margin-bottom: 15px;">Mevcut Özellikler</h2>
+    <table class="table">
+        <thead>
+            <tr>
+                <th style="width: 30%;">Nitelik Adı</th>
+                <th>Değer</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% set current_attr = "" %}
+            {% for attr in attributes %}
+            <tr>
+                {% if attr.attribute_name != current_attr %}
+                    <td style="font-weight: bold; border-top: 2px solid #ddd; padding-top: 10px;">{{ attr.attribute_name }}</td>
+                    {% set current_attr = attr.attribute_name %}
+                {% else %}
+                    <td></td>
+                {% endif %}
+                <td>{{ attr.value }}</td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="2">Henüz paylaşılan bir özellik eklenmedi.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    
+    <p style="margin-top: 20px; color: #7f8c8d; font-size: 0.9em;">
+        * Burada eklenen değerler, envanter öğesi eklerken "Marka/Model" hariç, Admin tarafından belirlenen ortak özellikler için seçilebilir seçenekler olarak kullanılacaktır.
+    </p>
+</div>
+
+{% endblock %}

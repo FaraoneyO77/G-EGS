@@ -1,0 +1,662 @@
+{% extends "base.html" %}
+
+{% block content %}
+    
+    <div class="p-4">
+        <h1 class="text-3xl font-bold mb-6">{{ title }}</h1>
+
+        {% if current_user.is_authenticated %} 
+        <button type="button" class="btn btn-primary mb-6" data-bs-toggle="modal" data-bs-target="#addItemModal">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 inline-block mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            Yeni Envanter Ekle
+        </button>
+
+        <button type="button" class="btn btn-info mb-6 ml-3" data-bs-toggle="modal" data-bs-target="#updateUserModal">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 inline-block mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+            </svg>
+            Personel Bilgileri
+        </button>
+        
+        {% if is_admin_view %}
+        <a href="{{ url_for('export_inventory', target_user=target_user) }}" class="btn btn-success mb-6 ml-3">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 inline-block mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+            </svg>
+            Excel Raporu Al
+        </a>
+        {% elif not is_admin_view %}
+        <a href="{{ url_for('export_inventory') }}" class="btn btn-success mb-6 ml-3">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 inline-block mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+            </svg>
+            Kendi Envanterimi Excel'e Aktar
+        </a>
+        {% endif %}
+        
+        {% endif %}
+
+        <form id="zimmetForm" method="POST" action="{{ url_for('generate_zimmet_form') }}" target="_blank" style="display:none;">
+            <input type="hidden" name="selected_items" id="selectedItemsInput">
+            <input type="hidden" name="target_user_id" value="{{ target_user_id }}">
+        </form>
+
+        <div class="card p-4 overflow-x-auto">
+            <h2 class="text-xl font-semibold mb-4 text-gray-700">Envanter Listesi {% if target_user and is_admin_view %}({{ target_user }}){% endif %}</h2>
+            
+            {% if inventory %}
+            
+            <div class="mb-3">
+                <button id="zimmetFormBtn" class="btn btn-secondary btn-sm" disabled>
+                    Seçilenler İçin Zimmet Formu Oluştur
+                </button>
+
+                <button type="submit" form="zimmetForm" formaction="{{ url_for('print_barcodes') }}" 
+                        id="printBarcodeBtn" class="btn btn-dark btn-sm ms-2" disabled target="_blank">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline-block mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v1m6 11h2m-6 0h-2v4h-4v-4H8m13-9a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    Seçilenler İçin Barkod Bas
+                </button>
+            </div>
+
+            <table class="table table-hover table-striped">
+                <thead class="bg-gray-200">
+                    <tr>
+                        <th style="width: 20px;"><input type="checkbox" id="selectAll"></th>
+                        <th scope="col" style="width: 15%;">Kategori/Tip</th>
+                        <th scope="col" style="width: 15%;">Marka/Model</th>
+                        <th scope="col" style="width: 10%;">Adet</th>
+                        <th scope="col" style="width: 20%;">Barkod No</th> <th scope="col" style="width: 20%;">Notlar</th> <th scope="col" style="width: 20%;">İşlemler</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in inventory %}
+                    <tr data-item-id="{{ item.id }}" 
+                        data-item-type="{{ item.type }}"
+                        data-barcode="{{ item.barcode or '' }}" 
+                        data-quantity="{{ item.quantity }}"
+                        data-notes="{{ item.notes or '' }}"
+                        >
+                        <td><input type="checkbox" class="zimmet-checkbox" value="{{ item.id }}"></td>
+                        <td>{{ item.category }}<br><small class="text-muted">{{ item.type }}</small></td>
+                        <td>{{ item.model_name }}</td>
+                        <td>
+                            <span class="badge bg-primary">{{ item.quantity }}</span>
+                        </td>
+                        <td>
+                            <span class="font-monospace fw-bold">{{ item.barcode }}</span>
+                        </td>
+                        <td>
+                            {{ (item.notes[:50] + '...' if item.notes | length > 50 else item.notes) or '-' }}
+                        </td>
+                        <td>
+                            <button type="button" class="btn btn-sm btn-info detail-button"
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#detailModal"
+                                    data-item-id="{{ item.id }}"
+                                    data-item-type="{{ item.type }}"
+                                    data-item-model-name="{{ item.model_name }}"
+                                    data-barcode="{{ item.barcode or '' }}"
+                                    data-quantity="{{ item.quantity }}"
+                                    data-notes="{{ item.notes or '' }}"
+                                    data-item-details='{{ item.details | tojson | safe }}'>
+                                Detay
+                            </button>
+                            
+                            <button type="button" class="btn btn-sm btn-warning mt-1" data-bs-toggle="modal" data-bs-target="#editItemModal" 
+                                onclick="prepareEditModal('{{ item.id }}', '{{ item.type }}', '{{ item.quantity }}', `{{ item.notes | replace('`', '') }}`, `{{ item.details | tojson | safe }}`)">
+                                Düzenle
+                            </button>
+
+                            <button type="button" class="btn btn-sm btn-danger mt-1" data-bs-toggle="modal" data-bs-target="#flagDefectiveModal" 
+                                onclick="prepareDefectiveModal('{{ item.id }}', '{{ item.type }}', '{{ item.quantity }}')">
+                                Bozuk İşaretle
+                            </button>
+                            
+                            <button type="button" class="btn btn-sm btn-success mt-1" data-bs-toggle="modal" data-bs-target="#transferModal" 
+                                onclick="prepareTransferModal('{{ item.id }}', '{{ item.type }}', '{{ item.quantity }}', '{{ target_user }}', '{{ is_admin_view }}')">
+                                Aktar
+                            </button>
+                            
+                            <form method="POST" action="{{ url_for('delete_inventory_item', item_id=item.id) }}" style="display: inline;" 
+                                onsubmit="return confirm('Bu envanter öğesini silmek istediğinizden emin misiniz?');">
+                                {% if is_admin_view %}
+                                <input type="hidden" name="target_user" value="{{ target_user }}">
+                                {% endif %}
+                                <button type="submit" class="btn btn-sm btn-outline-danger mt-1">Sil</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <div class="alert alert-info">Bu kullanıcının envanterinde kayıtlı herhangi bir cihaz bulunmamaktadır.</div>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="modal fade" id="addItemModal" tabindex="-1" aria-labelledby="addItemModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="addItemModalLabel">Yeni Envanter Öğesi Ekle</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form method="POST" action="{{ url_for('add_inventory') }}" id="addItemForm">
+                    <div class="modal-body">
+                        {% if is_admin_view %}
+                            <input type="hidden" name="target_user" value="{{ target_user }}">
+                        {% endif %}
+                        
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <label for="category" class="form-label">Kategori</label>
+                                <select id="category" name="category" class="form-select" required>
+                                    <option value="" disabled selected>-- Seçiniz --</option>
+                                    {% for cat, types in categories.items() %}
+                                        <option value="{{ cat }}">{{ cat }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label for="item_type" class="form-label">Ürün Tipi</label>
+                                <select id="item_type" name="item_type" class="form-select" required disabled>
+                                    <option value="" disabled selected>-- Önce Kategori Seçiniz --</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label for="model_name" class="form-label">Marka/Model</label>
+                                <select id="model_name" name="model_name" class="form-select" required>
+                                    <option value="" disabled selected>-- Seçiniz --</option>
+                                    {% for model in model_names %}
+                                        <option value="{{ model }}">{{ model }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="row g-3 mt-3">
+                            <div class="col-md-3">
+                                <label for="quantity" class="form-label">Adet</label>
+                                <input type="number" id="quantity" name="quantity" class="form-control" min="1" value="1" required>
+                            </div>
+                            <div class="col-md-9">
+                                <div class="alert alert-light border">
+                                    <small class="text-muted"><i class="bi bi-info-circle"></i> Barkod numarası sistem tarafından otomatik oluşturulacaktır.</small>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div id="dynamic-attributes-section" class="row g-3 mt-3">
+                            </div>
+
+                        <div class="row g-3 mt-3">
+                            <div class="col-12">
+                                <label for="notes" class="form-label">Arıza/Özel Notlar (Ops.)</label>
+                                <textarea id="notes" name="notes" class="form-control" rows="3" placeholder="Cihaz hakkında özel notlar, arıza geçmişi veya diğer önemli bilgiler..."></textarea>
+                            </div>
+                        </div>
+
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Kapat</button>
+                        <button type="submit" class="btn btn-primary">Envantere Ekle</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="modal fade" id="detailModal" tabindex="-1" aria-labelledby="detailModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="detailModalLabel">Envanter Öğesi Detayları</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <dl class="row" id="detailModalBodyContent">
+                        </dl>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Kapat</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="transferModal" tabindex="-1" aria-labelledby="transferModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="transferModalLabel">Envanter Öğesi Aktarımı</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form method="POST" id="transferForm">
+                    <div class="modal-body">
+                        <input type="hidden" name="current_user" value="{{ target_user }}">
+                        <input type="hidden" name="is_admin_transfer" value="{{ is_admin_view }}">
+                        
+                        <p>Aktarılacak Öğre: <strong id="transferItemType"></strong> (<span id="transferItemMaxQuantity"></span> adet mevcut)</p>
+                        
+                        <div class="mb-3">
+                            <label for="new_user" class="form-label">Hedef Kullanıcı</label>
+                            <select id="new_user" name="new_user" class="form-select" required>
+                                <option value="" disabled selected>-- Kullanıcı Seçiniz (Adminler hariç) --</option>
+                                {% for user in users_for_transfer %}
+                                    {% if user.username != target_user %} 
+                                        <option value="{{ user.username }}">{{ user.username }}</option>
+                                    {% endif %}
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="transfer_quantity" class="form-label">Aktarılacak Adet</label>
+                            <input type="number" id="transfer_quantity" name="transfer_quantity" class="form-control" min="1" required>
+                            <small class="form-text text-muted">Maksimum adet: <span id="transferMaxQuantityText"></span></small>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Kapat</button>
+                        <button type="submit" class="btn btn-primary">Aktarımı Gerçekleştir</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="editItemModal" tabindex="-1" aria-labelledby="editItemModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="editItemModalLabel">Envanter Öğesi Düzenle: <span id="editItemType"></span></h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form method="POST" id="editItemForm">
+                    <div class="modal-body">
+                        <input type="hidden" name="target_user" value="{{ target_user }}">
+                        
+                        <div class="alert alert-info py-2">
+                             Barkod No değiştirilemez.
+                        </div>
+
+                        <div id="dynamic-edit-attributes-section" class="row g-3 mt-3">
+                            </div>
+
+                        <div class="row g-3 mt-3">
+                            <div class="col-md-4">
+                                <label for="edit_quantity" class="form-label">Adet</label>
+                                <input type="number" id="edit_quantity" name="quantity" class="form-control" min="1" required>
+                            </div>
+                            <div class="col-md-8">
+                                <label for="edit_notes" class="form-label">Arıza/Özel Notlar</label>
+                                <textarea id="edit_notes" name="notes" class="form-control" rows="3"></textarea>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Kapat</button>
+                        <button type="submit" class="btn btn-warning">Kaydet</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="modal fade" id="flagDefectiveModal" tabindex="-1" aria-labelledby="flagDefectiveModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="flagDefectiveModalLabel">Cihazı Bozuk Olarak İşaretle</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form method="POST" id="defectiveForm">
+                    <div class="modal-body">
+                        <input type="hidden" name="target_user" value="{{ target_user }}">
+                        
+                        <p>İşaretlenecek Öğre: <strong id="defectItemType"></strong> (<span id="defectItemMaxQuantity"></span> adet mevcut)</p>
+                        
+                        <div class="alert alert-danger" role="alert">
+                            **DİKKAT!** Bozuk olarak işaretlenen cihazlar envanterinizden düşülecek ve **Arızalı Cihazlar** kaydına aktarılacaktır.
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="defect_quantity" class="form-label">Bozuk Olarak İşaretlenecek Adet</label>
+                            <input type="number" id="defect_quantity" name="defect_quantity" class="form-control" min="1" required>
+                            <small class="form-text text-muted">Maksimum adet: <span id="defectMaxQuantityText"></span></small>
+                        </div>
+                        <div class="mb-3">
+                            <label for="defect_notes" class="form-label">Arıza Notu (Zorunlu)</label>
+                            <textarea id="defect_notes" name="defect_notes" class="form-control" rows="3" required placeholder="Arızanın kısa ve net tanımı..."></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Kapat</button>
+                        <button type="submit" class="btn btn-danger">Bozuk Olarak Kaydet</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="updateUserModal" tabindex="-1" aria-labelledby="updateUserModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="updateUserModalLabel">Personel Bilgilerini Güncelle</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form method="POST" action="{{ url_for('update_user_details') }}">
+                    <div class="modal-body">
+                        <input type="hidden" name="target_user_id" value="{{ target_user_id }}">
+                        
+                        <div class="mb-3">
+                            <label for="department" class="form-label">Departman / Birim</label>
+                            <input type="text" id="department" name="department" class="form-control" 
+                                   value="{{ user_details.department if user_details and user_details.department else '' }}" 
+                                   placeholder="Örn: Bilgi İşlem, İnsan Kaynakları...">
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="title" class="form-label">Unvan</label>
+                            <input type="text" id="title" name="title" class="form-control" 
+                                   value="{{ user_details.title if user_details and user_details.title else '' }}" 
+                                   placeholder="Örn: Müdür, Uzman, Öğretmen...">
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Kapat</button>
+                        <button type="submit" class="btn btn-info">Bilgileri Kaydet</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+{% endblock %}
+
+{% block scripts %}
+    <script>
+        const CATEGORIES = JSON.parse('{{ categories | tojson | safe }}');
+        const SHARED_ATTRIBUTE_TYPES = JSON.parse('{{ SHARED_ATTRIBUTE_TYPES | tojson | safe }}');
+        const SHARED_ATTRIBUTE_VALUES = JSON.parse('{{ shared_attribute_values | tojson | safe }}');
+
+        const categorySelect = document.getElementById('category');
+        const itemTypeSelect = document.getElementById('item_type');
+        const dynamicAttributesSection = document.getElementById('dynamic-attributes-section');
+        const dynamicEditAttributesSection = document.getElementById('dynamic-edit-attributes-section');
+        const addItemForm = document.getElementById('addItemForm');
+
+        function generateAttributeInput(attributeName, parentSection, prefix = '') {
+            const hasSharedValues = SHARED_ATTRIBUTE_VALUES[attributeName] && SHARED_ATTRIBUTE_VALUES[attributeName].length > 0;
+            const inputId = `${prefix}${attributeName.replace(/[^a-zA-Z0-9]/g, '_')}`;
+            const inputName = `${prefix}${attributeName}`;
+            
+            let inputHtml = '';
+            
+            if (hasSharedValues) {
+                inputHtml = `
+                    <label for="${inputId}" class="form-label">${attributeName}</label>
+                    <select id="${inputId}" name="${inputName}" class="form-select" required>
+                        <option value="" disabled selected>-- Seçiniz --</option>
+                        ${SHARED_ATTRIBUTE_VALUES[attributeName].map(val => `<option value="${val}">${val}</option>`).join('')}
+                    </select>
+                `;
+            } else {
+                inputHtml = `
+                    <label for="${inputId}" class="form-label">${attributeName}</label>
+                    <input type="text" id="${inputId}" name="${inputName}" class="form-control" required>
+                `;
+            }
+
+            const colDiv = document.createElement('div');
+            colDiv.className = 'col-md-4 dynamic-attr-input'; 
+            colDiv.innerHTML = inputHtml;
+            parentSection.appendChild(colDiv);
+            
+            return inputId;
+        }
+
+        function updateDynamicAttributes() {
+            dynamicAttributesSection.innerHTML = ''; 
+
+            const selectedItemType = itemTypeSelect.value;
+            if (selectedItemType && SHARED_ATTRIBUTE_TYPES[selectedItemType]) {
+                const requiredAttributes = SHARED_ATTRIBUTE_TYPES[selectedItemType];
+                
+                requiredAttributes.forEach(attrName => {
+                    if (attrName !== 'Marka/Model') { 
+                        generateAttributeInput(attrName, dynamicAttributesSection);
+                    }
+                });
+            }
+        }
+        
+        function updateItemTypes() {
+            const selectedCategory = categorySelect.value;
+            
+            itemTypeSelect.innerHTML = '<option value="" disabled selected>-- Seçiniz --</option>';
+            itemTypeSelect.disabled = true;
+            dynamicAttributesSection.innerHTML = '';
+            
+            if (selectedCategory && CATEGORIES[selectedCategory]) {
+                CATEGORIES[selectedCategory].forEach(type => {
+                    const option = document.createElement('option');
+                    option.value = type;
+                    option.textContent = type;
+                    itemTypeSelect.appendChild(option);
+                });
+                itemTypeSelect.disabled = false;
+            }
+        }
+
+        if(categorySelect) {
+            categorySelect.addEventListener('change', updateItemTypes);
+        }
+        if(itemTypeSelect) {
+            itemTypeSelect.addEventListener('change', updateDynamicAttributes);
+        }
+
+        const detailModalEl = document.getElementById('detailModal');
+        detailModalEl.addEventListener('show.bs.modal', function (event) {
+            const button = event.relatedTarget;
+            const itemId = button.getAttribute('data-item-id');
+            const itemType = button.getAttribute('data-item-type');
+            const modelName = button.getAttribute('data-item-model-name');
+            const barcode = button.getAttribute('data-barcode'); 
+            const quantity = button.getAttribute('data-quantity');
+            const notes = button.getAttribute('data-notes');
+            const detailsJson = button.getAttribute('data-item-details');
+
+            const detailModalBodyContent = document.getElementById('detailModalBodyContent');
+            detailModalBodyContent.innerHTML = ''; 
+
+            const basicDetails = {
+                'ID': itemId,
+                'Kategori/Tip': itemType,
+                'Model': modelName,
+                'Barkod No': barcode, 
+                'Adet': quantity,
+            };
+            
+            for (const [key, value] of Object.entries(basicDetails)) {
+                const dt = document.createElement('dt');
+                dt.className = 'col-sm-4';
+                dt.textContent = key + ':';
+                
+                const dd = document.createElement('dd');
+                dd.className = 'col-sm-8';
+                dd.textContent = value || '-';
+                
+                detailModalBodyContent.appendChild(dt);
+                detailModalBodyContent.appendChild(dd);
+            }
+            
+            const dtNotes = document.createElement('dt');
+            dtNotes.className = 'col-sm-4 text-primary';
+            dtNotes.textContent = 'NOTLAR:';
+            const ddNotes = document.createElement('dd');
+            ddNotes.className = 'col-sm-8 text-primary';
+            ddNotes.textContent = notes || '-';
+            detailModalBodyContent.appendChild(dtNotes);
+            detailModalBodyContent.appendChild(ddNotes);
+
+            try {
+                const details = JSON.parse(detailsJson);
+                if (Object.keys(details).length > 0) {
+                    detailModalBodyContent.appendChild(document.createElement('hr')); 
+                    const headerDt = document.createElement('dt');
+                    headerDt.className = 'col-sm-12 text-center text-secondary';
+                    headerDt.textContent = 'Diğer Özellikler';
+                    detailModalBodyContent.appendChild(headerDt);
+                    
+                    for (const [key, value] of Object.entries(details)) {
+                        const dt = document.createElement('dt');
+                        dt.className = 'col-sm-4';
+                        dt.textContent = key + ':';
+                        
+                        const dd = document.createElement('dd');
+                        dd.className = 'col-sm-8';
+                        dd.textContent = value || '-';
+                        
+                        detailModalBodyContent.appendChild(dt);
+                        detailModalBodyContent.appendChild(dd);
+                    }
+                }
+            } catch (e) {
+                console.error("Detaylar yüklenirken bir sorun oluştu:", e);
+            }
+        });
+
+
+        function prepareTransferModal(itemId, itemType, maxQuantity, targetUser, isAdminView) {
+            const transferForm = document.getElementById('transferForm');
+            const newRoute = isAdminView === 'True' ? '{{ url_for("transfer_item", item_id="0") }}' : '{{ url_for("self_transfer_item", item_id="0") }}';
+            
+            transferForm.action = newRoute.replace('0', itemId);
+
+            document.getElementById('transferItemType').textContent = itemType;
+            document.getElementById('transferItemMaxQuantity').textContent = maxQuantity;
+            document.getElementById('transferMaxQuantityText').textContent = maxQuantity;
+            
+            const transferQuantityInput = document.getElementById('transfer_quantity');
+            transferQuantityInput.value = maxQuantity; 
+            transferQuantityInput.max = maxQuantity;
+        }
+        
+        function prepareEditModal(itemId, itemType, quantity, notes, detailsJson) {
+            const editItemForm = document.getElementById('editItemForm');
+            const editUrl = '{{ url_for("edit_inventory_item", item_id="0") }}'.replace('0', itemId);
+            editItemForm.action = editUrl;
+
+            document.getElementById('editItemType').textContent = itemType;
+            
+            const editQuantityInput = document.getElementById('edit_quantity');
+            editQuantityInput.value = quantity;
+            editQuantityInput.max = quantity; 
+            
+            document.getElementById('edit_notes').value = notes;
+            
+            dynamicEditAttributesSection.innerHTML = ''; 
+            try {
+                const details = JSON.parse(detailsJson);
+                if (SHARED_ATTRIBUTE_TYPES[itemType]) {
+                    const requiredAttrs = SHARED_ATTRIBUTE_TYPES[itemType];
+                    requiredAttrs.forEach(attrName => {
+                        if (attrName !== 'Marka/Model') {
+                            const hasSharedValues = SHARED_ATTRIBUTE_VALUES[attrName] && SHARED_ATTRIBUTE_VALUES[attrName].length > 0;
+                            const inputId = `edit_attr_${attrName.replace(/[^a-zA-Z0-9]/g, '_')}`;
+                            const inputName = `edit_attr_${attrName}`;
+                            
+                            const colDiv = document.createElement('div');
+                            colDiv.className = 'col-md-4 dynamic-attr-input';
+                            
+                            let inputHtml = '';
+                            if (hasSharedValues) {
+                                inputHtml = `
+                                    <label for="${inputId}" class="form-label">${attrName}</label>
+                                    <select id="${inputId}" name="${inputName}" class="form-select" required>
+                                        <option value="" disabled>-- Seçiniz --</option>
+                                        ${SHARED_ATTRIBUTE_VALUES[attrName].map(val => `<option value="${val}" ${details[attrName] === val ? 'selected' : ''}>${val}</option>`).join('')}
+                                    </select>
+                                `;
+                            } else {
+                                inputHtml = `
+                                    <label for="${inputId}" class="form-label">${attrName}</label>
+                                    <input type="text" id="${inputId}" name="${inputName}" class="form-control" value="${details[attrName] || ''}" required>
+                                `;
+                            }
+                            colDiv.innerHTML = inputHtml;
+                            dynamicEditAttributesSection.appendChild(colDiv);
+                        }
+                    });
+                }
+            } catch (e) {
+                console.error("Detaylar JSON formatında değil:", e);
+            }
+        }
+
+        function prepareDefectiveModal(itemId, itemType, maxQuantity) {
+            const defectiveForm = document.getElementById('defectiveForm');
+            const defectiveUrl = '{{ url_for("flag_as_defective", item_id="0") }}'.replace('0', itemId);
+            defectiveForm.action = defectiveUrl;
+
+            document.getElementById('defectItemType').textContent = itemType;
+            document.getElementById('defectItemMaxQuantity').textContent = maxQuantity;
+            document.getElementById('defectMaxQuantityText').textContent = maxQuantity;
+            
+            const defectQuantityInput = document.getElementById('defect_quantity');
+            defectQuantityInput.value = maxQuantity; 
+            defectQuantityInput.max = maxQuantity;
+            
+            document.getElementById('defect_notes').value = ""; 
+        }
+
+        const selectAllCheckbox = document.getElementById('selectAll');
+        const zimmetCheckboxes = document.querySelectorAll('.zimmet-checkbox');
+        const zimmetFormBtn = document.getElementById('zimmetFormBtn');
+        const printBarcodeBtn = document.getElementById('printBarcodeBtn'); // YENİ BUTON
+        const selectedItemsInput = document.getElementById('selectedItemsInput');
+
+        // YENİ GÜNCELLENEN FONKSİYON
+        function updateZimmetButton() {
+            const checkedBoxes = Array.from(zimmetCheckboxes).filter(cb => cb.checked);
+            if (checkedBoxes.length > 0) {
+                zimmetFormBtn.disabled = false;
+                printBarcodeBtn.disabled = false; // BARKOD BUTONUNU AKTİF ET
+                selectedItemsInput.value = checkedBoxes.map(cb => cb.value).join(',');
+            } else {
+                zimmetFormBtn.disabled = true;
+                printBarcodeBtn.disabled = true; // BARKOD BUTONUNU PASİF ET
+                selectedItemsInput.value = '';
+            }
+        }
+
+        selectAllCheckbox.addEventListener('change', function() {
+            zimmetCheckboxes.forEach(checkbox => {
+                checkbox.checked = this.checked;
+            });
+            updateZimmetButton();
+        });
+
+        zimmetCheckboxes.forEach(checkbox => {
+            checkbox.addEventListener('change', updateZimmetButton);
+        });
+
+        zimmetFormBtn.addEventListener('click', function() {
+            document.getElementById('zimmetForm').submit();
+        });
+
+        document.addEventListener('DOMContentLoaded', () => {
+            if(categorySelect) {
+                categorySelect.value = "";
+                updateItemTypes(); 
+            }
+        });
+
+    </script>
+{% endblock %}

@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="p-4">
+    <h1 class="text-3xl font-bold mb-6">{{ title }}</h1>
+
+    <a href="{{ url_for('admin_users') }}" class="btn btn-secondary btn-sm mb-4">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline-block mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+        </svg>
+        Geri (Kullanıcı Yönetimi)
+    </a>
+
+    <!-- Yeni Model/Marka Ekleme Formu -->
+    <div class="card p-4 mb-6 shadow-md">
+        <h2 class="text-xl font-semibold mb-4 text-gray-700">Yeni Model/Marka Ekle</h2>
+        <!-- Formun action'ı Flask backend'inizdeki ilgili rotayı temsil etmelidir (örn: admin_add_model) -->
+        <form method="POST" action="{{ url_for('admin_add_model') }}" class="flex flex-col md:flex-row gap-3">
+            <input 
+                type="text" 
+                name="model_name" 
+                placeholder="Yeni Model Adı (Örn: Dell Optiplex 3000, HP Laserjet P1102)" 
+                class="form-control flex-grow" 
+                required
+            >
+            <button type="submit" class="btn btn-primary whitespace-nowrap">Modeli Ekle</button>
+        </form>
+    </div>
+
+    <!-- Mevcut Modeller Listesi -->
+    <div class="card p-4 shadow-md">
+        <h2 class="text-xl font-semibold mb-4 text-gray-700">Mevcut Model/Markalar</h2>
+        
+        {% if models %}
+        <div class="overflow-x-auto">
+            <table class="table table-hover table-striped">
+                <thead class="bg-gray-200">
+                    <tr>
+                        <th scope="col" style="width: 70%;">Model Adı</th>
+                        <th scope="col" style="width: 30%;">İşlem</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for model in models %}
+                    <tr>
+                        <td>{{ model }}</td>
+                        <td>
+                            <!-- Formun action'ı Flask backend'inizdeki ilgili rotayı temsil etmelidir (örn: admin_delete_model) -->
+                            <form method="POST" action="{{ url_for('admin_delete_model', model_name=model) }}" style="display: inline;" 
+                                onsubmit="return confirm('Bu modeli silmek envanterdeki mevcut öğeleri etkileyebilir. Yine de silmek istediğinizden emin misiniz?');">
+                                <button type="submit" class="btn btn-sm btn-danger">Sil</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="alert alert-info">Henüz sisteme eklenmiş bir model/marka bulunmamaktadır.</div>
+        {% endif %}
+    </div>
+</div>
+
+{% endblock %}

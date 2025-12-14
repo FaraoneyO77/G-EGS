@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="p-4">
+    <h1 class="text-3xl font-bold mb-6">{{ title }}</h1>
+
+    <a href="{{ url_for('admin_users') }}" class="btn btn-secondary btn-sm mb-4">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline-block mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+        </svg>
+        Geri (Kullanıcı Yönetimi)
+    </a>
+
+    <div class="card p-4 overflow-x-auto">
+        <h2 class="text-xl font-semibold mb-4 text-gray-700">Arızalı Cihaz Listesi</h2>
+        
+        {% if defective_items %}
+        <table class="table table-hover table-striped">
+            <thead class="bg-danger text-white">
+                <tr>
+                    <th scope="col" style="width: 15%;">Cihaz Tipi</th>
+                    <th scope="col" style="width: 15%;">Marka/Model</th>
+                    <th scope="col" style="width: 10%;">Adet</th>
+                    <th scope="col" style="width: 20%;">Kimden Alındı (Kullanıcı)</th>
+                    <th scope="col" style="width: 25%;">Arıza Notu</th>
+                    <th scope="col" style="width: 15%;">İşlem</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in defective_items %}
+                <tr>
+                    <td>{{ item.type }}</td>
+                    <td>{{ item.model_name }}</td>
+                    <td><span class="badge bg-danger">{{ item.quantity }}</span></td>
+                    <td>
+                        <strong>{{ item.original_username }}</strong>
+                    </td>
+                    <td>
+                        {{ item.defect_notes or '-' }}
+                    </td>
+                    <td>
+                        <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#repairModal"
+                                onclick="prepareRepairModal('{{ item.id }}', '{{ item.type }}', '{{ item.quantity }}')">
+                                Tamir Edildi
+                        </button>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="alert alert-success">Sistemde bozuk olarak işaretlenmiş bir cihaz kaydı bulunmamaktadır.</div>
+        {% endif %}
+    </div>
+</div>
+
+<div class="modal fade" id="repairModal" tabindex="-1" aria-labelledby="repairModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="repairModalLabel">Tamir Edilen Cihazı Zimmetle</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="POST" id="repairForm">
+                <div class="modal-body">
+                    <p>Tamir Edilen Öğre: <strong id="repairItemType"></strong> (<span id="repairItemMaxQuantity"></span> adet mevcut)</p>
+                    
+                    <div class="mb-3">
+                        <label for="new_user" class="form-label">Hedef Kullanıcı</label>
+                        <select id="new_user" name="new_user" class="form-select" required>
+                            <option value="" disabled selected>-- Kullanıcı Seçiniz --</option>
+                            {% for user in users_for_transfer %}
+                                <option value="{{ user.username }}">{{ user.username }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="repair_quantity" class="form-label">Zimmetlenecek Adet</label>
+                        <input type="number" id="repair_quantity" name="repair_quantity" class="form-control" min="1" required>
+                        <small class="form-text text-muted">Maksimum adet: <span id="repairMaxQuantityText"></span></small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Kapat</button>
+                    <button type="submit" class="btn btn-primary">Envantere Ekle ve Zimmetle</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+
+{% endblock %}
+
+
+{% block scripts %}
+<script>
+    function prepareRepairModal(itemId, itemType, maxQuantity) {
+        const repairForm = document.getElementById('repairForm');
+        const repairUrl = '{{ url_for("repair_item", defective_id="0") }}'.replace('0', itemId);
+        repairForm.action = repairUrl;
+        
+        document.getElementById('repairItemType').textContent = itemType;
+        document.getElementById('repairItemMaxQuantity').textContent = maxQuantity;
+        document.getElementById('repairMaxQuantityText').textContent = maxQuantity;
+
+        const repairQuantityInput = document.getElementById('repair_quantity');
+        repairQuantityInput.value = maxQuantity;
+        repairQuantityInput.max = maxQuantity;
+    }
+</script>
+{% endblock %}

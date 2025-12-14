@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <title>Barkod Yazdır</title>
+    <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
+    <style>
+        body {
+            background-color: #e2e2e2;
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+        }
+
+        /* Yazdırma Ayarları Paneli (Yazıcıda görünmez) */
+        .controls {
+            background: white;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            text-align: center;
+            max-width: 210mm;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        
+        .controls label { margin-right: 10px; font-weight: bold; }
+        .controls select { padding: 5px; border-radius: 4px; border: 1px solid #ccc; }
+        .btn-print {
+            background-color: #3498db; color: white; border: none; padding: 8px 20px;
+            border-radius: 4px; cursor: pointer; font-size: 14px; margin-left: 15px;
+        }
+        .btn-print:hover { background-color: #2980b9; }
+
+        /* A4 Kağıt Yapısı */
+        .page {
+            background: white;
+            width: 210mm;
+            min-height: 297mm;
+            margin: 0 auto;
+            padding: 10mm; /* Kenar boşlukları */
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            box-sizing: border-box;
+            display: grid;
+            /* Varsayılan: 5 sütun (60-65 etiket için uygun) */
+            grid-template-columns: repeat(5, 1fr); 
+            gap: 2mm; /* Etiketler arası boşluk */
+            align-content: start;
+        }
+
+        /* Etiket Tasarımı */
+        .label {
+            border: 1px dashed #ddd; /* Kesim çizgisi rehberi */
+            padding: 2px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            height: 38mm; /* Varsayılan yükseklik */
+            box-sizing: border-box;
+            overflow: hidden;
+            page-break-inside: avoid;
+        }
+
+        .model-name {
+            font-size: 10px;
+            font-weight: bold;
+            margin-bottom: 2px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            width: 100%;
+        }
+
+        .barcode-svg {
+            width: 100%;
+            height: auto;
+            max-height: 25mm;
+        }
+
+        /* Yazıcı Medya Sorgusu */
+        @media print {
+            body { margin: 0; padding: 0; background: white; }
+            .controls { display: none !important; }
+            .page {
+                width: 100%; margin: 0; padding: 5mm; 
+                box-shadow: none; border: none;
+            }
+            .label { border: none; /* Yazıcıda çizgiler çıkmasın istenirse 'none' yapın */ }
+            @page { size: A4; margin: 0; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="controls no-print">
+        <label for="layoutSelect">Yerleşim Düzeni:</label>
+        <select id="layoutSelect" onchange="updateLayout()">
+            <option value="65">Çok Küçük (5 Sütun - ~65/Sayfa)</option>
+            <option value="44" selected>Standart (4 Sütun - ~44/Sayfa)</option>
+            <option value="24">Büyük (3 Sütun - ~24/Sayfa)</option>
+        </select>
+        
+        <label for="showBorder">Çerçeve:</label>
+        <input type="checkbox" id="showBorder" onchange="toggleBorder()" checked>
+
+        <button onclick="window.print()" class="btn-print">Yazdır</button>
+        <button onclick="window.history.back()" class="btn-print" style="background-color: #7f8c8d;">Geri Dön</button>
+    </div>
+
+    <div class="page" id="labelContainer">
+        {% for item in items %}
+        <div class="label">
+            <div class="model-name" title="{{ item.model_name }}">
+                {{ item.model_name }}
+            </div>
+            <svg class="barcode"
+                 jsbarcode-format="EAN13"
+                 jsbarcode-value="{{ item.barcode }}"
+                 jsbarcode-textmargin="0"
+                 jsbarcode-fontoptions="bold"
+                 jsbarcode-height="30"
+                 jsbarcode-width="1.5"
+                 jsbarcode-fontsize="12">
+            </svg>
+        </div>
+        {% endfor %}
+    </div>
+
+    <script>
+        // Sayfa yüklendiğinde barkodları oluştur
+        document.addEventListener("DOMContentLoaded", function() {
+            JsBarcode(".barcode").init();
+            updateLayout(); // Başlangıç düzenini uygula
+        });
+
+        function updateLayout() {
+            const container = document.getElementById('labelContainer');
+            const selection = document.getElementById('layoutSelect').value;
+            const labels = document.querySelectorAll('.label');
+
+            if (selection === "65") {
+                // 60-65 adet sığdırmak için (5 Sütun)
+                container.style.gridTemplateColumns = "repeat(5, 1fr)";
+                labels.forEach(l => l.style.height = "21.2mm"); // Standart adres etiketi boyutu
+            } else if (selection === "44") {
+                // 40-44 adet sığdırmak için (4 Sütun)
+                container.style.gridTemplateColumns = "repeat(4, 1fr)";
+                labels.forEach(l => l.style.height = "34mm");
+            } else {
+                // 24 adet sığdırmak için (3 Sütun)
+                container.style.gridTemplateColumns = "repeat(3, 1fr)";
+                labels.forEach(l => l.style.height = "50mm");
+            }
+            
+            // Barkodları yeniden boyutlandır (CSS width %100 olduğu için otomatik uyarlar ama render tetikleyebiliriz)
+            JsBarcode(".barcode").init();
+        }
+
+        function toggleBorder() {
+            const isChecked = document.getElementById('showBorder').checked;
+            const labels = document.querySelectorAll('.label');
+            labels.forEach(label => {
+                label.style.border = isChecked ? '1px dashed #ddd' : 'none';
+            });
+        }
+    </script>
+</body>
+</html>

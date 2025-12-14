@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title }}</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #fff;
+            color: #000;
+        }
+
+        .form-container {
+            max-width: 900px;
+            margin: 0 auto;
+            border: 2px solid #333;
+            padding: 30px;
+            background-color: #fff;
+        }
+
+        .logo-header {
+            text-align: center;
+            margin-bottom: 10px;
+        }
+
+        .logo-header img {
+            max-width: 250px;
+            height: auto;
+        }
+
+        h1,
+        h2 {
+            text-align: center;
+            color: #333;
+        }
+
+        h1 {
+            font-size: 24px;
+            margin-bottom: 20px;
+            border-bottom: 1px solid #ccc;
+            padding-bottom: 10px;
+            text-transform: uppercase;
+        }
+
+        h2 {
+            font-size: 18px;
+            margin-top: 20px;
+            margin-bottom: 10px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 5px;
+        }
+
+        .user-info,
+        .zimmet-info {
+            margin-bottom: 20px;
+            border: 1px solid #ddd;
+            padding: 15px;
+            border-radius: 5px;
+        }
+
+        .user-info p {
+            margin: 5px 0;
+            line-height: 1.5;
+        }
+
+        .item-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+            font-size: 12px;
+        }
+
+        .item-table th,
+        .item-table td {
+            border: 1px solid #333;
+            padding: 8px;
+            text-align: left;
+        }
+
+        .item-table th {
+            background-color: #f2f2f2;
+            font-weight: bold;
+        }
+
+        .signatures {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 60px;
+            page-break-inside: avoid;
+        }
+
+        .signature-box {
+            width: 45%;
+            text-align: center;
+            border-top: 1px solid #333;
+            padding-top: 10px;
+            font-size: 14px;
+        }
+
+        @page {
+            margin: 0;
+            size: auto;
+        }
+
+        @media print {
+            .no-print {
+                display: none !important;
+            }
+
+            body {
+                margin: 1.5cm 1.5cm 1.5cm 1.5cm !important;
+                padding: 0;
+                background-color: #fff;
+            }
+
+            .form-container {
+                border: none;
+                margin: 0;
+                padding: 0;
+                width: 100%;
+                max-width: 100%;
+            }
+
+            .item-table th {
+                background-color: #eee !important;
+                -webkit-print-color-adjust: exact;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container no-print mb-4">
+        <div class="d-flex justify-content-between align-items-center">
+            <button onclick="history.back()" class="btn btn-secondary">
+                &larr; Envantere Geri Dön
+            </button>
+
+            <button onclick="window.print()" class="btn btn-primary">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
+                    class="bi bi-printer me-2" viewBox="0 0 16 16">
+                    <path d="M2.5 8a.5.5 0 1 0 0-1 .5.5 0 0 0 0 1" />
+                    <path
+                        d="M5 1a2 2 0 0 0-2 2v2H2a2 2 0 0 0-2 2v3a2 2 0 0 0 2 2h1v1a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2v-1h1a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-1V3a2 2 0 0 0-2-2zM4 3a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2H4zm1 5a2 2 0 0 0-2 2v1H2a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-1v-1a2 2 0 0 0-2-2zm7 2v3a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1" />
+                </svg>
+                Yazdır
+            </button>
+        </div>
+    </div>
+
+    <div class="form-container">
+
+        <div class="logo-header">
+            <img src="{{ url_for('static', filename='cinar_logo.png') }}" alt="Çınar Koleji Logosu">
+        </div>
+
+        <h1>ENVANTER ZİMMET FORMU</h1>
+
+        <p style="text-align: right; font-size: 14px; margin-bottom: 20px;">
+            <strong>Tarih:</strong> {{ current_date }}
+        </p>
+
+        <div class="user-info">
+            <h2>Personel Bilgileri</h2>
+            <p><strong>Zimmet Alan Personel:</strong> {{ user_details.username | upper }}</p>
+            <p><strong>Departman:</strong> {{ user_details.department if user_details.department else '-' }}</p>
+            <p><strong>Unvan:</strong> {{ user_details.title if user_details.title else '-' }}</p>
+        </div>
+
+        <h2>Zimmetlenen Envanter Listesi</h2>
+        <table class="item-table">
+            <thead>
+                <tr>
+                    <th style="width: 15%;">Cihaz Tipi</th>
+                    <th style="width: 20%;">Marka/Model</th>
+                    <th style="width: 20%;">Barkod No</th> <th style="width: 5%;">Adet</th>
+                    <th style="width: 25%;">Özellikler</th>
+                    <th style="width: 15%;">Notlar</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in zimmet_items %}
+                <tr>
+                    <td>{{ item.type }}</td>
+                    <td>{{ item.model_name }}</td>
+                    <td>
+                        {{ item.barcode }}
+                    </td>
+                    <td style="text-align: center;">{{ item.quantity }}</td>
+                    <td>
+                        {% if item.details %}
+                        <ul style="margin: 0; padding-left: 15px; list-style-type: square; margin-bottom: 0;">
+                            {% for key, value in item.details.items() %}
+                            <li><strong>{{ key }}:</strong> {{ value }}</li>
+                            {% endfor %}
+                        </ul>
+                        {% else %}
+                        -
+                        {% endif %}
+                    </td>
+                    <td>{{ item.notes or '-' }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <div style="margin-top: 30px; font-size: 14px; line-height: 1.6;">
+            <p>1- Teslim alan kişi ürünün kullanım özelliklerine uygun, çalışır, eksiksiz ve sağlam olduğunu kontrol
+                etmekle yükümlüdür. Gerekir ise, ürüne ait kusur veya eksik açıklama kısmına yazılır.</p>
+            <p>1-The person who takes delivery of the items is responsible for checking the items to see whether the
+                items are appropriate, in working condition, complete and correct. When necessary, all incomplete.
+                incorrect or damaged items should be indicated on the section for comments.</p>
+            <p>2- Ürünün özelliklerine bağlı olan normal yıpranmalar dışındaki hasarlardan veya demirbaşın kaybından
+                teslim alan kişi sorumludur.</p>
+            <p>2- The person taking delivery of the item will be responsible for losing the item or any damages outside
+                the normal wearing of the item out.</p>
+        </div>
+
+        <div class="signatures">
+            <div class="signature-box">
+                <p><strong>Teslim Alan Personel</strong></p>
+                <br><br>
+                <span>(Ad Soyad, İmza)</span>
+                <br>
+                <strong style="display:block; margin-top:5px;">{{ user_details.username | title }}</strong>
+            </div>
+            <div class="signature-box">
+                <p><strong>Teslim Eden / Yetkili</strong></p>
+                <br><br>
+                <span>(Ad Soyad, İmza)</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            setTimeout(() => {
+                window.print();
+            }, 500);
+        });
+    </script>
+</body>
+
+</html>
