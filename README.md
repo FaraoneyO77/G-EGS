@@ -21,13 +21,13 @@ git clone https://github.com/FaraoneyO77/G-EGS.git
 cd G-EGS
 
 # 2. Sanal Ortam Kurulumu
-python3 -m venv venv
-source venv/bin/activate  # Linux/macOS
+# python3 -m venv venv
+# source venv/bin/activate  # Linux/macOS
 # .\venv\Scripts\activate  # Windows
 
 # 3. Bağımlılıkları Yükleyin
 # requirements.txt dosyası olmadığı varsayılırsa:
-pip install Flask Flask-Login bcrypt pandas
+# pip install Flask Flask-Login bcrypt pandas
 
 # 4. Uygulamayı Başlatın
 python3 app.py
