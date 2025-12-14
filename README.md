@@ -32,8 +32,8 @@ pip install Flask Flask-Login bcrypt pandas
 # 4. Uygulamayı Başlatın
 python3 app.py
 Uygulama başlatıldıktan sonra tarayıcınızda genellikle http://127.0.0.1:5000 adresinde erişilebilir olacaktır.İlk Giriş: login.html dosyasındaki ipucuna göre test amaçlı kullanıcılar mevcuttur: admin/adminpass (Yönetici) veya ahmet/1234 (Personel).
-👨‍💻 Yazar ve İletişim: Bu proje, gerçek bir kurumsal ihtiyaca cevap vermek ve sağlam yazılım geliştirme prensiplerini uygulamak amacıyla oluşturulmuştur.
-Geliştirici: Cihan Dik
-Uzmanlık Alanı: SecDevOps, Python Geliştirme, Siber Güvenlik
-LinkedIn: https://www.linkedin.com/in/cihan-dik/
-E-posta: faraoney077@gmail.com
+# 👨‍💻 Yazar ve İletişim: Bu proje, gerçek bir kurumsal ihtiyaca cevap vermek ve sağlam yazılım geliştirme prensiplerini uygulamak amacıyla oluşturulmuştur.
+# Geliştirici: Cihan Dik
+# Uzmanlık Alanı: SecDevOps, Python Geliştirme, Siber Güvenlik
+# LinkedIn: https://www.linkedin.com/in/cihan-dik/
+# E-posta: faraoney077@gmail.com
